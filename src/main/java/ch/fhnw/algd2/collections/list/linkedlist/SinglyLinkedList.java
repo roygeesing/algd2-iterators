@@ -1,7 +1,6 @@
 package ch.fhnw.algd2.collections.list.linkedlist;
 
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.*;
 
 import ch.fhnw.algd2.collections.list.MyAbstractList;
 
@@ -9,35 +8,128 @@ public class SinglyLinkedList<E> extends MyAbstractList<E> {
 	// variable int modCount already declared by AbstractList<E>
 	private int size = 0;
 	private Node<E> first;
+	private int version = 0;
 
 	@Override
 	public boolean add(E e) {
-		throw new UnsupportedOperationException();
-	}
+		Node<E> last = first;
+		Node<E> previous = null;
+		while (last != null) {
+			previous = last;
+			last = last.next;
+		}
 
-	@Override
-	public void add(int index, E element) {
-		throw new UnsupportedOperationException();
-	}
+		if (previous != null) {
+			previous.next = new Node<>(e);
+		} else {
+			first = new Node<>(e);
+		}
 
-	@Override
-	public boolean remove(Object o) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public E remove(int index) {
-		throw new UnsupportedOperationException();
+		size++;
+		version++;
+		return true;
 	}
 
 	@Override
 	public boolean contains(Object o) {
-		throw new UnsupportedOperationException();
+		Node<E> current = first;
+		while (current != null) {
+			if (Objects.equals(current.elem, o)) {
+				return true;
+			}
+			current = current.next;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean remove(Object o) {
+		Node<E> current = first;
+		Node<E> previous = null;
+
+		while (current != null && !Objects.equals(current.elem, o)) {
+			previous = current;
+			current = current.next;
+		}
+
+		if (current == null) {
+			return false;
+		}
+
+		if (previous != null) {
+			previous.next = current.next;
+		} else {
+			first = current.next;
+		}
+		size--;
+		version++;
+		return true;
 	}
 
 	@Override
 	public E get(int index) {
-		throw new UnsupportedOperationException();
+		if (index >= size || index < 0) {
+			throw new IndexOutOfBoundsException();
+		}
+
+		Node<E> current = first;
+		for (int i = 0; i < index; i++) {
+			current = current.next;
+		}
+
+		return current.elem;
+	}
+
+	@Override
+	public void add(int index, E element) {
+		if (index > size || index < 0) {
+			throw new IndexOutOfBoundsException();
+		}
+
+		if (index == 0) {
+			first = new Node<>(element, first);
+			size++;
+			version++;
+			return;
+		}
+
+		Node<E> current = first;
+		Node<E> previous = null;
+		for (int i = 0; i < index; i++) {
+			previous = current;
+			current = current.next;
+		}
+
+		if (previous != null) {
+			previous.next = new Node<>(element, current);
+		} else {
+			first = new Node<>(element);
+		}
+		size++;
+		version++;
+	}
+
+	@Override
+	public E remove(int index) {
+		if (index >= size || index < 0) {
+			throw new IndexOutOfBoundsException();
+		}
+
+		Node<E> current = first;
+		Node<E> previous = null;
+		for (int i = 0; i < index; i++) {
+			previous = current;
+			current = current.next;
+		}
+
+		if (previous != null) {
+			previous.next = current.next;
+		} else {
+			first = current.next;
+		}
+		size--;
+		version++;
+		return current.elem;
 	}
 
 	@Override
@@ -77,19 +169,48 @@ public class SinglyLinkedList<E> extends MyAbstractList<E> {
 	}
 
 	private class MyIterator implements Iterator<E> {
+		private int itVersion = version;
+		private Node<E> previous = null;
+		private Node<E> current = null;
+		private Node<E> next = first;
+
 		@Override
 		public boolean hasNext() {
-			throw new UnsupportedOperationException();
+			return next != null;
 		}
 
 		@Override
 		public E next() {
-			throw new UnsupportedOperationException();
+			if (!hasNext()) {
+				throw new NoSuchElementException();
+			}
+
+			if (itVersion != version) {
+				throw new ConcurrentModificationException();
+			}
+
+			if (current != null) {
+				previous = current;
+			}
+			current = next;
+			next = current.next;
+			return current.elem;
 		}
 
 		@Override
 		public void remove() {
-			throw new UnsupportedOperationException();
+			if (current == null) {
+				throw new IllegalStateException();
+			} else if (previous == null) {
+				first = next;
+			} else {
+				previous.next = next;
+			}
+
+			current = null;
+			size--;
+			itVersion++;
+			version++;
 		}
 	}
 
